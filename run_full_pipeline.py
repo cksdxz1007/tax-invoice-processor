@@ -241,7 +241,7 @@ def get_customer_code(db_path: str, customer_name: str) -> tuple:
 
 
 def create_entry(month, year, voucher_no, row_no, summary, subject_code, debit, credit,
-                 customer_code, customer_name, counter_subject, voucher_date):
+                 customer_code, customer_name, counter_subject, voucher_date, invoice_count=1):
     """创建单条分录"""
     entry = {field: '' for field in VOUCHER_FIELDS}
 
@@ -251,7 +251,7 @@ def create_entry(month, year, voucher_no, row_no, summary, subject_code, debit, 
     entry['凭证编号'] = voucher_no
     entry['行号'] = row_no
     entry['制单日期'] = voucher_date
-    entry['附单据数'] = 1
+    entry['附单据数'] = invoice_count
     entry['制单人'] = '1'
     entry['审核人'] = '4'
     entry['记账人'] = '4'
@@ -323,6 +323,7 @@ def step3_generate_voucher(invoice_file: str, db_path: str, month: int, year: in
             single_total = float(row['单票合计'])  # 价税合计
             amount = float(row['金额'])  # 不含税金额
             tax = float(row['税额'])  # 税额
+            invoice_count = int(row['发票张数'])  # 发票张数
 
             if not matched:
                 unmatched_customers.append({
@@ -338,7 +339,8 @@ def step3_generate_voucher(invoice_file: str, db_path: str, month: int, year: in
                 summary=f'{month}月应收账款', subject_code='122',
                 debit=single_total, credit=0,
                 customer_code=customer_code, customer_name=customer_name,
-                counter_subject='501,2210102', voucher_date=voucher_date
+                counter_subject='501,2210102', voucher_date=voucher_date,
+                invoice_count=invoice_count
             )
             entries.append(entry)
             row_no += 1
@@ -349,7 +351,8 @@ def step3_generate_voucher(invoice_file: str, db_path: str, month: int, year: in
                 summary=f'{month}月销售收入', subject_code='501',
                 debit=0, credit=amount,
                 customer_code=customer_code, customer_name=customer_name,
-                counter_subject='122', voucher_date=voucher_date
+                counter_subject='122', voucher_date=voucher_date,
+                invoice_count=invoice_count
             )
             entries.append(entry)
             row_no += 1
@@ -360,7 +363,8 @@ def step3_generate_voucher(invoice_file: str, db_path: str, month: int, year: in
                 summary=f'{month}月销项税', subject_code='2210102',
                 debit=0, credit=tax,
                 customer_code=customer_code, customer_name=customer_name,
-                counter_subject='122', voucher_date=voucher_date
+                counter_subject='122', voucher_date=voucher_date,
+                invoice_count=invoice_count
             )
             entries.append(entry)
             row_no += 1
