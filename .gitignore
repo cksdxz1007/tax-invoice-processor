@@ -64,3 +64,6 @@ Docs/
 
 # Claude
 .claude/
+
+# App files
+app.pid
