@@ -8,12 +8,17 @@ PYTHON_BIN="python"
 APP_FILE="app.py"
 LOG_FILE="app.log"
 PID_FILE="app.pid"
+DEFAULT_PORT=5000
 
 # 颜色
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
+
+# 端口 (命令行参数 > 环境变量 > 默认值)
+PORT=${2:-$PORT}
+PORT=${PORT:-$DEFAULT_PORT}
 
 # 目录
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -25,7 +30,7 @@ if [ -d ".venv" ]; then
 fi
 
 show_help() {
-    echo "用法: ./start.sh [命令]"
+    echo "用法: ./start.sh [命令] [端口]"
     echo ""
     echo "命令:"
     echo "  start     启动服务 (后台运行)"
@@ -34,6 +39,16 @@ show_help() {
     echo "  status    查看运行状态"
     echo "  log       查看日志"
     echo "  help      显示帮助"
+    echo ""
+    echo "端口:"
+    echo "  默认 5000"
+    echo "  可通过环境变量 PORT 指定"
+    echo "  或命令行第二个参数指定"
+    echo ""
+    echo "示例:"
+    echo "  ./start.sh start        # 启动(端口5000)"
+    echo "  ./start.sh start 8080   # 启动(端口8080)"
+    echo "  PORT=8080 ./start.sh start  # 启动(端口8080)"
 }
 
 start_server() {
@@ -42,17 +57,17 @@ start_server() {
         return 1
     fi
 
-    echo -e "${GREEN}启动服务...${NC}"
+    echo -e "${GREEN}启动服务 (端口: $PORT)...${NC}"
 
-    # 后台启动
-    nohup $PYTHON_BIN $APP_FILE > "$LOG_FILE" 2>&1 &
+    # 后台启动，指定端口
+    PORT=$PORT nohup $PYTHON_BIN $APP_FILE > "$LOG_FILE" 2>&1 &
     echo $! > "$PID_FILE"
 
     sleep 2
 
     if kill -0 $(cat "$PID_FILE") 2>/dev/null; then
         echo -e "${GREEN}服务已启动 (PID: $(cat $PID_FILE))${NC}"
-        echo -e "访问地址: http://127.0.0.1:5000"
+        echo -e "访问地址: http://127.0.0.1:$PORT"
         echo -e "日志文件: $LOG_FILE"
     else
         echo -e "${RED}启动失败，请查看日志: $LOG_FILE${NC}"
@@ -103,7 +118,7 @@ show_status() {
     PID=$(cat "$PID_FILE")
 
     if kill -0 "$PID" 2>/dev/null; then
-        echo -e "${GREEN}服务运行中 (PID: $PID)${NC}"
+        echo -e "${GREEN}服务运行中 (PID: $PID, 端口: $PORT)${NC}"
     else
         echo -e "${YELLOW}服务未运行 (PID文件过期)${NC}"
         rm -f "$PID_FILE"

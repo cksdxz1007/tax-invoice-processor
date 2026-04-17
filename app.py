@@ -253,10 +253,13 @@ def import_suppliers():
 # 启动
 # ============================================================================
 if __name__ == '__main__':
+    import os
+    port = int(os.environ.get('PORT', 5000))
+
     print("=" * 60)
     print("税务应收应付数据处理系统 Web 服务")
     print("=" * 60)
-    print("请访问: http://127.0.0.1:5000")
+    print(f"请访问: http://127.0.0.1:{port}")
     print("按 Ctrl+C 停止服务")
     print("=" * 60)
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    app.run(debug=True, host='127.0.0.1', port=port)
