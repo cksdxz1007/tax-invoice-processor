@@ -1,0 +1,70 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Uploads and downloads (generated files)
+uploads/
+downloads/
+Output/
+
+# Lock files
+*.lock
+.lock
+.~lock.*
+.DS_Store
+
+# Excel files (except template and source data)
+*.xlsx
+!Docs/*.xlsx
+
+# Excel backup files
+*.xlsx~
+
+# Database
+*.db
+!data.db
+
+# Claude
+.claude/
