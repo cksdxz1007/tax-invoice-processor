@@ -55,12 +55,8 @@ Output/
 .~lock.*
 .DS_Store
 
-# Excel files (except template and source data)
-*.xlsx
-!Docs/*.xlsx
-
-# Excel backup files
-*.xlsx~
+# Docs directory (source data files)
+Docs/
 
 # Database
 *.db
