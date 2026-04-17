@@ -143,11 +143,11 @@ def step1_split_invoice(invoice_file: str, month: int, output_file: str) -> bool
 
 
 # ============================================================================
-# 第二步: 生成应收数据
+# 第二步: 生成应收/应付数据
 # ============================================================================
 def step2_generate_receivable(input_file: str, month: int, output_file: str) -> bool:
     """
-    第二步: 生成应收数据
+    第二步: 生成应收数据和应付数据
 
     Args:
         input_file: 发票明细文件
@@ -158,23 +158,21 @@ def step2_generate_receivable(input_file: str, month: int, output_file: str) -> 
         是否成功
     """
     print("\n" + "=" * 70)
-    print("第二步: 生成应收数据")
+    print("第二步: 生成应收/应付数据")
     print("=" * 70)
 
     try:
-        # 读取专票和普票
+        # 读取专票和普票 -> 应收数据
         df_vat = pd.read_excel(input_file, sheet_name='专票')
         df_normal = pd.read_excel(input_file, sheet_name='普票')
 
         print(f"专票: {len(df_vat)} 条")
         print(f"普票: {len(df_normal)} 条")
 
-        # 合并
-        df = pd.concat([df_vat, df_normal], ignore_index=True)
-        print(f"合并后: {len(df)} 条")
+        df_receivable = pd.concat([df_vat, df_normal], ignore_index=True)
+        print(f"合并后(应收): {len(df_receivable)} 条")
 
-        # 按单位名称汇总
-        receivable = df.groupby('单位名称').agg({
+        receivable = df_receivable.groupby('单位名称').agg({
             '单票合计': 'sum',
             '金额': 'sum',
             '税额': 'sum',
@@ -185,14 +183,39 @@ def step2_generate_receivable(input_file: str, month: int, output_file: str) -> 
         receivable = receivable.sort_values('单票合计', ascending=False).reset_index(drop=True)
 
         print(f"\n应收数据汇总: {len(receivable)} 个客户")
-        print(f"总金额: {receivable['金额'].sum():,.2f}")
-        print(f"总税额: {receivable['税额'].sum():,.2f}")
+        print(f"  总金额: {receivable['金额'].sum():,.2f}")
+        print(f"  总税额: {receivable['税额'].sum():,.2f}")
 
-        # 保存
+        # 读取进项 -> 应付数据
+        if '进项' in pd.ExcelFile(input_file).sheet_names:
+            df_input = pd.read_excel(input_file, sheet_name='进项')
+            print(f"\n进项: {len(df_input)} 条")
+
+            payable = df_input.groupby('单位名称').agg({
+                '单票合计': 'sum',
+                '金额': 'sum',
+                '税额': 'sum',
+                '发票张数': 'sum'
+            }).reset_index()
+
+            payable.columns = ['单位名称', '单票合计', '金额', '税额', '发票张数']
+            payable = payable.sort_values('单票合计', ascending=False).reset_index(drop=True)
+
+            print(f"应付数据汇总: {len(payable)} 个供应商")
+            print(f"  总金额: {payable['金额'].sum():,.2f}")
+            print(f"  总税额: {payable['税额'].sum():,.2f}")
+        else:
+            payable = pd.DataFrame(columns=['单位名称', '单票合计', '金额', '税额', '发票张数'])
+            print(f"\n未找到进项数据")
+
+        # 保存到Excel
         with pd.ExcelWriter(output_file, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
             receivable.to_excel(writer, sheet_name='应收数据', index=False)
+            payable.to_excel(writer, sheet_name='应付数据', index=False)
 
-        print(f"\n已保存到: {output_file} 的【应收数据】sheet")
+        print(f"\n已保存到: {output_file}")
+        print(f"  - 【应收数据】sheet: {len(receivable)} 个客户")
+        print(f"  - 【应付数据】sheet: {len(payable)} 个供应商")
         return True
 
     except Exception as e:

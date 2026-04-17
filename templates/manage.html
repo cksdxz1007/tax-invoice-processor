@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>档案管理 - 税务应收应付数据处理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        h1 {
+            color: #333;
+            font-size: 24px;
+        }
+        .nav {
+            display: flex;
+            gap: 15px;
+        }
+        .nav a {
+            padding: 10px 20px;
+            background: #f0f0f0;
+            color: #333;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .nav a:hover {
+            background: #e0e0e0;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 12px 30px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .tab:hover:not(.active) {
+            background: #e0e0e0;
+        }
+        .actions {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background: #e0e0e0;
+            color: #333;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #218838;
+            color: white;
+        }
+        .search-box {
+            margin-bottom: 20px;
+        }
+        .search-box input {
+            width: 100%;
+            max-width: 400px;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+        .flash {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .flash.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .flash.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            flex: 1;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .import-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .import-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>档案管理</h1>
+            <div class="nav">
+                <a href="{{ url_for('index') }}">返回首页</a>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('customers')">客户档案</button>
+            <button class="tab" onclick="showTab('suppliers')">供应商档案</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="total-count">-</div>
+                <div class="stat-label">档案总数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="recent-count">-</div>
+                <div class="stat-label">本月新增</div>
+            </div>
+        </div>
+
+        <!-- 客户档案 -->
+        <div id="customers-tab">
+            <div class="import-section">
+                <h3>导入客户档案</h3>
+                <form action="{{ url_for('import_customers') }}" method="post" enctype="multipart/form-data" style="display: flex; gap: 15px; align-items: center;">
+                    <input type="file" name="file" accept=".xlsx,.xls,.csv" required>
+                    <button type="submit" class="btn btn-success">导入</button>
+                    <a href="{{ url_for('download_customer_template') }}" class="btn btn-secondary">下载模板</a>
+                </form>
+            </div>
+
+            <div class="actions">
+                <a href="{{ url_for('export_customers') }}" class="btn btn-primary">导出全部</a>
+                <button class="btn btn-secondary" onclick="showAddModal('customer')">新增客户</button>
+            </div>
+
+            <div class="search-box">
+                <input type="text" id="customer-search" placeholder="搜索客户名称、编号或简称..." onkeyup="filterTable('customer')">
+            </div>
+
+            <table id="customer-table">
+                <thead>
+                    <tr>
+                        <th>客户编号</th>
+                        <th>客户名称</th>
+                        <th>客户简称</th>
+                        <th>总公司全称</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for customer in customers %}
+                    <tr>
+                        <td>{{ customer[0] }}</td>
+                        <td>{{ customer[1] }}</td>
+                        <td>{{ customer[2] or '' }}</td>
+                        <td>{{ customer[3] or '' }}</td>
+                        <td>
+                            <button class="btn btn-secondary" onclick="editCustomer('{{ customer[0] }}')">编辑</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 供应商档案 -->
+        <div id="suppliers-tab" style="display: none;">
+            <div class="import-section">
+                <h3>导入供应商档案</h3>
+                <form action="{{ url_for('import_suppliers') }}" method="post" enctype="multipart/form-data" style="display: flex; gap: 15px; align-items: center;">
+                    <input type="file" name="file" accept=".xlsx,.xls,.csv" required>
+                    <button type="submit" class="btn btn-success">导入</button>
+                    <a href="{{ url_for('download_supplier_template') }}" class="btn btn-secondary">下载模板</a>
+                </form>
+            </div>
+
+            <div class="actions">
+                <a href="{{ url_for('export_suppliers') }}" class="btn btn-primary">导出全部</a>
+                <button class="btn btn-secondary" onclick="showAddModal('supplier')">新增供应商</button>
+            </div>
+
+            <div class="search-box">
+                <input type="text" id="supplier-search" placeholder="搜索供应商名称、编号或简称..." onkeyup="filterTable('supplier')">
+            </div>
+
+            <table id="supplier-table">
+                <thead>
+                    <tr>
+                        <th>供应商编号</th>
+                        <th>供应商名称</th>
+                        <th>供应商简称</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for supplier in suppliers %}
+                    <tr>
+                        <td>{{ supplier[0] }}</td>
+                        <td>{{ supplier[1] }}</td>
+                        <td>{{ supplier[2] or '' }}</td>
+                        <td>
+                            <button class="btn btn-secondary" onclick="editSupplier('{{ supplier[0] }}')">编辑</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 新增/编辑客户模态框 -->
+    <div id="customer-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="customer-modal-title">新增客户</h2>
+            <form action="{{ url_for('add_customer') }}" method="post" id="customer-form">
+                <input type="hidden" name="id" id="customer-id">
+                <div class="form-group">
+                    <label>客户编号 *</label>
+                    <input type="text" name="客户编号" id="customer-code" required>
+                </div>
+                <div class="form-group">
+                    <label>客户名称 *</label>
+                    <input type="text" name="客户名称" id="customer-name" required>
+                </div>
+                <div class="form-group">
+                    <label>客户简称</label>
+                    <input type="text" name="客户简称" id="customer-short">
+                </div>
+                <div class="form-group">
+                    <label>总公司全称</label>
+                    <input type="text" name="总公司全称" id="customer-parent">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('customer')">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 新增/编辑供应商模态框 -->
+    <div id="supplier-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="supplier-modal-title">新增供应商</h2>
+            <form action="{{ url_for('add_supplier') }}" method="post" id="supplier-form">
+                <input type="hidden" name="id" id="supplier-id">
+                <div class="form-group">
+                    <label>供应商编号 *</label>
+                    <input type="text" name="供应商编号" id="supplier-code" required>
+                </div>
+                <div class="form-group">
+                    <label>供应商名称 *</label>
+                    <input type="text" name="供应商名称" id="supplier-name" required>
+                </div>
+                <div class="form-group">
+                    <label>供应商简称</label>
+                    <input type="text" name="供应商简称" id="supplier-short">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('supplier')">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('[id$="-tab"]').forEach(t => t.style.display = 'none');
+
+            if (tab === 'customers') {
+                document.querySelector('.tab:nth-child(1)').classList.add('active');
+                document.getElementById('customers-tab').style.display = 'block';
+            } else {
+                document.querySelector('.tab:nth-child(2)').classList.add('active');
+                document.getElementById('suppliers-tab').style.display = 'block';
+            }
+        }
+
+        function filterTable(type) {
+            const searchInput = document.getElementById(type + '-search');
+            const filter = searchInput.value.toLowerCase();
+            const table = document.getElementById(type + '-table');
+            const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+            for (let row of rows) {
+                let text = '';
+                const cells = row.getElementsByTagName('td');
+                for (let cell of cells) {
+                    text += cell.textContent.toLowerCase();
+                }
+                row.style.display = text.includes(filter) ? '' : 'none';
+            }
+        }
+
+        function showAddModal(type) {
+            document.getElementById(type + '-modal-title').textContent = '新增' + (type === 'customer' ? '客户' : '供应商');
+            document.getElementById(type + '-form').reset();
+            document.getElementById(type + '-id').value = '';
+            document.getElementById(type + '-modal').classList.add('show');
+        }
+
+        function closeModal(type) {
+            document.getElementById(type + '-modal').classList.remove('show');
+        }
+
+        function editCustomer(code) {
+            fetch('/api/customer/' + code)
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('customer-modal-title').textContent = '编辑客户';
+                    document.getElementById('customer-id').value = data.客户编号;
+                    document.getElementById('customer-code').value = data.客户编号;
+                    document.getElementById('customer-name').value = data.客户名称;
+                    document.getElementById('customer-short').value = data.客户简称 || '';
+                    document.getElementById('customer-parent').value = data.总公司全称 || '';
+                    document.getElementById('customer-modal').classList.add('show');
+                });
+        }
+
+        function editSupplier(code) {
+            fetch('/api/supplier/' + code)
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('supplier-modal-title').textContent = '编辑供应商';
+                    document.getElementById('supplier-id').value = data.供应商编号;
+                    document.getElementById('supplier-code').value = data.供应商编号;
+                    document.getElementById('supplier-name').value = data.供应商名称;
+                    document.getElementById('supplier-short').value = data.供应商简称 || '';
+                    document.getElementById('supplier-modal').classList.add('show');
+                });
+        }
+    </script>
+</body>
+</html>
