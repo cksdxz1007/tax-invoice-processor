@@ -20,10 +20,30 @@ import sys
 import os
 import pandas as pd
 import sqlite3
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 
 # 添加当前目录到路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# ============================================================================
+# 颜色常量
+# ============================================================================
+YELLOW_COLORS = {'FFFF00', 'FFFFFF00', 'FF00FFFF00'}  # 黄色填充
+
+
+def is_yellow_fill(cell) -> bool:
+    """检查单元格是否为黄色填充"""
+    try:
+        if cell.fill and cell.fill.fgColor:
+            color = cell.fill.fgColor.rgb
+            if color:
+                # 转换为字符串处理
+                color = str(color).upper()
+                return 'FFFF00' in color or color in YELLOW_COLORS
+    except:
+        pass
+    return False
+
 
 # ============================================================================
 # 第一步: 拆分发票数据
@@ -106,28 +126,76 @@ def step1_split_invoice(invoice_file: str, month: int, output_file: str) -> bool
     print("=" * 70)
 
     try:
+        # 使用 openpyxl 读取以支持颜色检测
+        wb = load_workbook(invoice_file, data_only=True)
+        ws = wb[f'{month}月']
+
+        # 获取原始数据用于边界识别
         df = pd.read_excel(invoice_file, sheet_name=f'{month}月', header=None)
         print(f"读取工作表 '{month}月': {df.shape[0]} 行 x {df.shape[1]} 列")
 
         boundaries = find_section_boundaries(df)
         print(f"识别分区: {list(boundaries.keys())}")
 
+        # 找到「金额」列的索引
         columns = ['单位名称', '日期', '发票张数', '发票号', '单票合计', '金额', '税额', '备注']
+        amount_col_idx = None
+        for i, col in enumerate(columns):
+            if col == '金额':
+                amount_col_idx = i
+                break
+
         sheets = {}
 
         for section, boundary in boundaries.items():
             col_row = find_column_row(df, boundary['start'], boundary['end'])
             boundary['col_row'] = col_row
             data_start = col_row + 1
+
             section_df = df.iloc[data_start:boundary['end'] + 1].copy()
             section_df.columns = df.iloc[col_row].tolist()
             section_df = section_df.reset_index(drop=True)
+
+            # 过滤汇总行
             section_df = section_df[
                 section_df['单位名称'].notna() &
                 ~section_df['单位名称'].astype(str).str.contains('|'.join(SUMMARY_KEYWORDS), na=False)
             ]
+
+            # 过滤黄色填充的行（金额列为黄色）
+            if amount_col_idx is not None:
+                original_rows = []
+                yellow_count = 0
+                for idx, _ in section_df.iterrows():
+                    # 计算原始DataFrame中的位置对应的Excel行号
+                    # df的索引从0开始，Excel从1开始
+                    excel_row = data_start + idx + 1
+                    excel_col = amount_col_idx + 1
+                    cell = ws.cell(row=excel_row, column=excel_col)
+                    if is_yellow_fill(cell):
+                        yellow_count += 1
+                    else:
+                        original_rows.append(idx)
+
+                section_df = section_df.loc[original_rows]
+                if yellow_count > 0:
+                    print(f"  {section}: 过滤 {yellow_count} 行黄色填充数据")
+
+            # 添加汇总行
+            summary_row = {
+                '单位名称': '合计',
+                '日期': '',
+                '发票张数': section_df['发票张数'].sum() if '发票张数' in section_df.columns else 0,
+                '发票号': '',
+                '单票合计': section_df['单票合计'].sum() if '单票合计' in section_df.columns else 0,
+                '金额': section_df['金额'].sum() if '金额' in section_df.columns else 0,
+                '税额': section_df['税额'].sum() if '税额' in section_df.columns else 0,
+                '备注': ''
+            }
+            section_df = pd.concat([section_df, pd.DataFrame([summary_row])], ignore_index=True)
+
             sheets[section] = section_df
-            print(f"  {section}: {len(section_df)} 条")
+            print(f"  {section}: {len(section_df) - 1} 条数据 + 1 行汇总")
 
         # 保存
         with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
@@ -164,7 +232,9 @@ def step2_generate_receivable(input_file: str, month: int, output_file: str) -> 
     try:
         # 读取专票和普票 -> 应收数据
         df_vat = pd.read_excel(input_file, sheet_name='专票')
+        df_vat = df_vat[df_vat['单位名称'] != '合计']
         df_normal = pd.read_excel(input_file, sheet_name='普票')
+        df_normal = df_normal[df_normal['单位名称'] != '合计']
 
         print(f"专票: {len(df_vat)} 条")
         print(f"普票: {len(df_normal)} 条")
@@ -189,6 +259,7 @@ def step2_generate_receivable(input_file: str, month: int, output_file: str) -> 
         # 读取进项 -> 应付数据
         if '进项' in pd.ExcelFile(input_file).sheet_names:
             df_input = pd.read_excel(input_file, sheet_name='进项')
+            df_input = df_input[df_input['单位名称'] != '合计']
             print(f"\n进项: {len(df_input)} 条")
 
             payable = df_input.groupby('单位名称').agg({
@@ -310,6 +381,8 @@ def step3_generate_voucher(invoice_file: str, db_path: str, month: int, year: in
     try:
         voucher_date = f'{year}-{month:02d}-01'
         df = pd.read_excel(invoice_file, sheet_name='应收数据')
+        # 排除汇总行
+        df = df[df['单位名称'] != '合计']
         print(f"读取应收数据: {len(df)} 个客户")
 
         entries = []
