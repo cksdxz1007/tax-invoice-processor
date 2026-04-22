@@ -454,6 +454,10 @@ def step3_generate_voucher(invoice_file: str, db_path: str, month: int, year: in
         df_out = pd.DataFrame(entries)
         df_out = df_out[VOUCHER_FIELDS]
 
+        # 确保客户编码保存为字符串格式（保留前导0）
+        df_out['客户编码'] = df_out['客户编码'].astype(str)
+        df_out['供应商编码'] = df_out['供应商编码'].astype(str)
+
         wb = Workbook()
         ws = wb.active
         ws.title = 'Sheet1'

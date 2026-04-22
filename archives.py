@@ -108,9 +108,9 @@ class ArchiveManager:
         """
         try:
             if file_path.endswith('.csv'):
-                df = pd.read_csv(file_path)
+                df = pd.read_csv(file_path, dtype={'客户编号': str})
             else:
-                df = pd.read_excel(file_path)
+                df = pd.read_excel(file_path, dtype={'客户编号': str})
 
             required_cols = ['客户编号', '客户名称']
             missing = [col for col in required_cols if col not in df.columns]
