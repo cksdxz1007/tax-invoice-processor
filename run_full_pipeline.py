@@ -357,10 +357,8 @@ def step3_generate_voucher(invoice_file: str, db_path: str, month: int, year: in
     """
     第三步: 生成凭证分录
 
-    每行应收数据拆分为3条分录:
-    1. 借方 应收账款 (单票合计)
-    2. 贷方 商品销售收入 (金额)
-    3. 贷方 销项税 (税额)
+    借方分录: 每行应收数据1条（应收账款）
+    贷方分录: 销售收入和销项税各自汇总成1行
 
     Args:
         invoice_file: 发票明细文件
@@ -390,7 +388,12 @@ def step3_generate_voucher(invoice_file: str, db_path: str, month: int, year: in
         row_no = 1
         unmatched_customers = []
 
-        # 每行应收数据拆分为3条分录
+        # 汇总金额和税额
+        total_amount = 0.0
+        total_tax = 0.0
+        total_invoice_count = 0
+
+        # 借方分录: 每行应收数据1条
         for _, row in df.iterrows():
             customer_name = str(row['单位名称'])
             customer_code, matched = get_customer_code(db_path, customer_name)
@@ -407,7 +410,12 @@ def step3_generate_voucher(invoice_file: str, db_path: str, month: int, year: in
                     '税额': tax
                 })
 
-            # 分录1: 借方 应收账款 (单票合计)
+            # 累计汇总
+            total_amount += amount
+            total_tax += tax
+            total_invoice_count += invoice_count
+
+            # 借方 应收账款 (单票合计)
             entry = create_entry(
                 month=month, year=year, voucher_no=voucher_no, row_no=row_no,
                 summary=f'{month}月应收账款', subject_code='122',
@@ -419,35 +427,34 @@ def step3_generate_voucher(invoice_file: str, db_path: str, month: int, year: in
             entries.append(entry)
             row_no += 1
 
-            # 分录2: 贷方 商品销售收入 (金额)
-            entry = create_entry(
-                month=month, year=year, voucher_no=voucher_no, row_no=row_no,
-                summary=f'{month}月销售收入', subject_code='501',
-                debit=0, credit=amount,
-                customer_code=customer_code, customer_name=customer_name,
-                counter_subject='122', voucher_date=voucher_date,
-                invoice_count=invoice_count
-            )
-            entries.append(entry)
-            row_no += 1
+        # 贷方分录: 销售收入汇总成1行
+        entry = create_entry(
+            month=month, year=year, voucher_no=voucher_no, row_no=row_no,
+            summary=f'{month}月销售收入', subject_code='501',
+            debit=0, credit=total_amount,
+            customer_code='', customer_name='',
+            counter_subject='122', voucher_date=voucher_date,
+            invoice_count=total_invoice_count
+        )
+        entries.append(entry)
+        row_no += 1
 
-            # 分录3: 贷方 销项税 (税额)
-            entry = create_entry(
-                month=month, year=year, voucher_no=voucher_no, row_no=row_no,
-                summary=f'{month}月销项税', subject_code='2210102',
-                debit=0, credit=tax,
-                customer_code=customer_code, customer_name=customer_name,
-                counter_subject='122', voucher_date=voucher_date,
-                invoice_count=invoice_count
-            )
-            entries.append(entry)
-            row_no += 1
+        # 贷方分录: 销项税汇总成1行
+        entry = create_entry(
+            month=month, year=year, voucher_no=voucher_no, row_no=row_no,
+            summary=f'{month}月销项税', subject_code='2210102',
+            debit=0, credit=total_tax,
+            customer_code='', customer_name='',
+            counter_subject='122', voucher_date=voucher_date,
+            invoice_count=total_invoice_count
+        )
+        entries.append(entry)
 
         # 计算合计
         debit_total = sum(float(e['借方金额']) if e['借方金额'] else 0 for e in entries)
         credit_total = sum(float(e['贷方金额']) if e['贷方金额'] else 0 for e in entries)
 
-        print(f"生成凭证分录: {len(entries)} 条 (每客户3条)")
+        print(f"生成凭证分录: {len(df)} 条借方 + 2 条贷方 = {len(entries)} 条")
         print(f"  借方合计: {debit_total:,.2f}")
         print(f"  贷方合计: {credit_total:,.2f}")
 
