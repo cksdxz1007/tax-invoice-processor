@@ -379,7 +379,8 @@ def step3_generate_voucher(invoice_file: str, db_path: str, month: int, year: in
     print("=" * 70)
 
     try:
-        voucher_date = f'{year}-{month:02d}-01'
+        from datetime import datetime
+        voucher_date = datetime.now().strftime('%Y-%m-%d')
         df = pd.read_excel(invoice_file, sheet_name='应收数据')
         # 排除汇总行
         df = df[df['单位名称'] != '合计']
@@ -458,20 +459,52 @@ def step3_generate_voucher(invoice_file: str, db_path: str, month: int, year: in
         df_out['客户编码'] = df_out['客户编码'].astype(str)
         df_out['供应商编码'] = df_out['供应商编码'].astype(str)
 
+        # 清空自定义字段1
+        df_out['自定义字段1'] = ''
+
+        # 设置外币和数量字段为0
+        for field in ['外币借方金额', '外币贷方金额', '数量借方', '数量贷方']:
+            if field in df_out.columns:
+                df_out[field] = 0
+
+        # 设置汇率为1
+        if '汇率' in df_out.columns:
+            df_out['汇率'] = 1
+
         wb = Workbook()
         ws = wb.active
         ws.title = 'Sheet1'
         ws.append(list(df_out.columns))
 
-        for _, row in df_out.iterrows():
-            ws.append(list(row))
+        # 需要设为空值的字段
+        empty_fields = [
+            '借方金额', '贷方金额',
+            '银行帐两清标志', '往来帐两清标志', '是否核销',
+            '凭证是否可修改', '凭证分录是否可增删', '凭证合计金额是否保值',
+            '分录数值是否可修改', '分录科目是否可修改', '分录受控科目可用状态',
+            '分录往来项是否可修改', '分录部门是否可修改', '分录项目是否可修改',
+            '分录往来项是否必输'
+        ]
 
-        # 设置金额格式
+        for _, row in df_out.iterrows():
+            row_data = list(row)
+            for field in empty_fields:
+                if field in df_out.columns:
+                    idx = df_out.columns.get_loc(field)
+                    val = row_data[idx]
+                    # 0或'0'或0.0改为None
+                    if val == 0 or val == '0' or val == 0.0 or val == '':
+                        row_data[idx] = None
+            ws.append(row_data)
+
+        # 设置金额格式（仅对非空值）
         debit_col = list(df_out.columns).index('借方金额') + 1
         credit_col = list(df_out.columns).index('贷方金额') + 1
         for row in range(2, len(df_out) + 2):
             for col in [debit_col, credit_col]:
-                ws.cell(row=row, column=col).number_format = '0.00'
+                cell = ws.cell(row=row, column=col)
+                if cell.value is not None:
+                    cell.number_format = '0.00'
 
         wb.save(output_file)
 
