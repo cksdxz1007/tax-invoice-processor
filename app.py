@@ -13,8 +13,9 @@ import sys
 import uuid
 import tempfile
 from datetime import datetime
+from functools import wraps
 
-from flask import Flask, render_template, request, send_file, flash, redirect, url_for
+from flask import Flask, render_template, request, send_file, flash, redirect, url_for, session
 import pandas as pd
 
 # 添加当前目录到路径
@@ -33,6 +34,7 @@ app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['OUTPUT_FOLDER'] = 'downloads'
 app.config['DB_PATH'] = 'data.db'
+app.config['HTPASSWD_FILE'] = '.htpasswd'
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
@@ -41,9 +43,74 @@ archives = ArchiveManager(app.config['DB_PATH'])
 
 
 # ============================================================================
+# 认证功能
+# ============================================================================
+def check_auth(username, password):
+    """验证用户名和密码"""
+    import hashlib
+
+    htpasswd_file = app.config['HTPASSWD_FILE']
+    if not os.path.exists(htpasswd_file):
+        return False
+
+    # 计算密码的 SHA256 哈希
+    password_hash = hashlib.sha256(password.encode()).hexdigest()
+
+    with open(htpasswd_file, 'r') as f:
+        for line in f:
+            parts = line.strip().split(':')
+            if len(parts) >= 2 and parts[0] == username:
+                stored_hash = parts[1]
+                return password_hash == stored_hash
+    return False
+
+
+def authenticate():
+    """发送认证失败响应"""
+    flash('请先登录', 'error')
+    return redirect(url_for('login'))
+
+
+def requires_auth(f):
+    """登录验证装饰器"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'authenticated' not in session:
+            return authenticate()
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username', '')
+        password = request.form.get('password', '')
+
+        if check_auth(username, password):
+            session['authenticated'] = True
+            session['username'] = username
+            flash('登录成功', 'success')
+            return redirect(url_for('index'))
+        else:
+            flash('用户名或密码错误', 'error')
+
+    return render_template('login.html')
+
+
+@app.route('/logout')
+def logout():
+    session.pop('authenticated', None)
+    session.pop('username', None)
+    flash('已退出登录', 'success')
+    return redirect(url_for('login'))
+
+
+# ============================================================================
 # 主页
 # ============================================================================
 @app.route('/')
+@requires_auth
 def index():
     return render_template('index.html')
 
@@ -52,6 +119,7 @@ def index():
 # 文件处理
 # ============================================================================
 @app.route('/upload', methods=['POST'])
+@requires_auth
 def upload():
     if 'file' not in request.files:
         flash('请选择要上传的文件', 'error')
@@ -135,6 +203,7 @@ def upload():
 
 
 @app.route('/download/<session_id>/<filename>')
+@requires_auth
 def download(session_id, filename):
     file_path = os.path.join(app.config['OUTPUT_FOLDER'], session_id, filename)
     if not os.path.exists(file_path):
@@ -144,6 +213,7 @@ def download(session_id, filename):
 
 
 @app.route('/cleanup', methods=['POST'])
+@requires_auth
 def cleanup():
     """清理上传和处理结果文件"""
     try:
@@ -174,6 +244,7 @@ def cleanup():
 
 
 @app.route('/files')
+@requires_auth
 def list_files():
     """列出历史文件"""
     files = []
@@ -202,6 +273,7 @@ def list_files():
 # 档案管理
 # ============================================================================
 @app.route('/manage')
+@requires_auth
 def manage():
     customers = archives.get_customers()
     suppliers = archives.get_suppliers()
@@ -209,16 +281,19 @@ def manage():
 
 
 @app.route('/api/customer/<code>')
+@requires_auth
 def get_customer(code):
     return archives.get_customer(code)
 
 
 @app.route('/api/supplier/<code>')
+@requires_auth
 def get_supplier(code):
     return archives.get_supplier(code)
 
 
 @app.route('/add_customer', methods=['POST'])
+@requires_auth
 def add_customer():
     success, msg = archives.save_customer(
         request.form.get('客户编号'),
@@ -231,6 +306,7 @@ def add_customer():
 
 
 @app.route('/add_supplier', methods=['POST'])
+@requires_auth
 def add_supplier():
     success, msg = archives.save_supplier(
         request.form.get('供应商编号'),
@@ -242,30 +318,35 @@ def add_supplier():
 
 
 @app.route('/export_customers')
+@requires_auth
 def export_customers():
     file_path = archives.export_customers()
     return send_file(file_path, as_attachment=True, download_name='客户档案.xlsx')
 
 
 @app.route('/export_suppliers')
+@requires_auth
 def export_suppliers():
     file_path = archives.export_suppliers()
     return send_file(file_path, as_attachment=True, download_name='供应商档案.xlsx')
 
 
 @app.route('/download_customer_template')
+@requires_auth
 def download_customer_template():
     file_path = archives.download_customer_template()
     return send_file(file_path, as_attachment=True, download_name='客户档案导入模板.xlsx')
 
 
 @app.route('/download_supplier_template')
+@requires_auth
 def download_supplier_template():
     file_path = archives.download_supplier_template()
     return send_file(file_path, as_attachment=True, download_name='供应商档案导入模板.xlsx')
 
 
 @app.route('/import_customers', methods=['POST'])
+@requires_auth
 def import_customers():
     if 'file' not in request.files:
         flash('请选择要上传的文件', 'error')
@@ -287,6 +368,7 @@ def import_customers():
 
 
 @app.route('/import_suppliers', methods=['POST'])
+@requires_auth
 def import_suppliers():
     if 'file' not in request.files:
         flash('请选择要上传的文件', 'error')
@@ -320,4 +402,4 @@ if __name__ == '__main__':
     print(f"请访问: http://127.0.0.1:{port}")
     print("按 Ctrl+C 停止服务")
     print("=" * 60)
-    app.run(debug=True, host='127.0.0.1', port=port)
+    app.run(debug=True, host='0.0.0.0', port=port)

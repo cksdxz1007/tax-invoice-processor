@@ -15,9 +15,27 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             padding: 20px;
+        }
+        .header {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+        }
+        .logout-btn {
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+        .logout-btn:hover {
+            opacity: 1;
         }
         .container {
             background: white;
@@ -136,6 +154,9 @@
     </style>
 </head>
 <body>
+    <div class="header">
+        <a href="{{ url_for('logout') }}" class="logout-btn">退出登录</a>
+    </div>
     <div class="container">
         <h1>税务应收应付数据处理系统</h1>
         <p class="subtitle">自动拆分发票数据、生成应收数据、导出凭证分录</p>

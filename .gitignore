@@ -67,3 +67,6 @@ Docs/
 
 # App files
 app.pid
+
+# Password file
+.htpasswd
