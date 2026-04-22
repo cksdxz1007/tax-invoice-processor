@@ -70,3 +70,4 @@ app.pid
 
 # Password file
 .htpasswd
+cookies.txt
