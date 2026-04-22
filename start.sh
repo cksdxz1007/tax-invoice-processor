@@ -8,7 +8,13 @@ PYTHON_BIN="python"
 APP_FILE="app.py"
 LOG_FILE="app.log"
 PID_FILE="app.pid"
-DEFAULT_PORT=5000
+
+# 生成随机5位数端口 (10000-99999)
+generate_random_port() {
+    echo $((RANDOM % 90000 + 10000))
+}
+
+DEFAULT_PORT=15090
 
 # 颜色
 GREEN='\033[0;32m'
@@ -41,13 +47,13 @@ show_help() {
     echo "  help      显示帮助"
     echo ""
     echo "端口:"
-    echo "  默认 5000"
+    echo "  默认随机5位数 (10000-99999)"
     echo "  可通过环境变量 PORT 指定"
     echo "  或命令行第二个参数指定"
     echo ""
     echo "示例:"
-    echo "  ./start.sh start        # 启动(端口5000)"
-    echo "  ./start.sh start 8080   # 启动(端口8080)"
+    echo "  ./start.sh start        # 启动(随机端口)"
+    echo "  ./start.sh start 8080  # 启动(端口8080)"
     echo "  PORT=8080 ./start.sh start  # 启动(端口8080)"
 }
 
@@ -118,7 +124,12 @@ show_status() {
     PID=$(cat "$PID_FILE")
 
     if kill -0 "$PID" 2>/dev/null; then
-        echo -e "${GREEN}服务运行中 (PID: $PID, 端口: $PORT)${NC}"
+        # 获取实际监听端口
+        ACTUAL_PORT=$(lsof -p $PID 2>/dev/null | grep -i listen | awk '{print $9}' | grep -oE '[0-9]+$' | head -1)
+        if [ -z "$ACTUAL_PORT" ]; then
+            ACTUAL_PORT=$PORT
+        fi
+        echo -e "${GREEN}服务运行中 (PID: $PID, 端口: $ACTUAL_PORT)${NC}"
     else
         echo -e "${YELLOW}服务未运行 (PID文件过期)${NC}"
         rm -f "$PID_FILE"

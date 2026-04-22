@@ -194,10 +194,20 @@
             </ul>
         </div>
 
-        <div style="margin-top: 30px; text-align: center;">
+        <div style="margin-top: 30px; display: flex; gap: 20px; justify-content: center;">
             <a href="{{ url_for('manage') }}" style="color: #667eea; text-decoration: none; font-size: 14px;">
                 档案管理（客户/供应商）
             </a>
+            <span style="color: #ccc;">|</span>
+            <a href="{{ url_for('list_files') }}" style="color: #667eea; text-decoration: none; font-size: 14px;">
+                历史文件
+            </a>
+            <span style="color: #ccc;">|</span>
+            <form action="{{ url_for('cleanup') }}" method="post" style="display: inline;">
+                <button type="submit" style="background: none; border: none; color: #999; cursor: pointer; font-size: 14px; padding: 0;">
+                    清理历史文件
+                </button>
+            </form>
         </div>
     </div>
 </body>

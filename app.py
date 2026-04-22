@@ -90,10 +90,13 @@ def upload():
         unmatched_file = os.path.join(output_dir, f'{target_month}月未匹配客户.xlsx')
 
         step1_split_invoice(upload_path, target_month, invoice_detail_file)
-        _, data = step2_generate_receivable(invoice_detail_file, target_month, invoice_detail_file)
+        step2_generate_receivable(invoice_detail_file, target_month, invoice_detail_file)
 
-        receivable_count = len(data.get('receivable', []))
-        payable_count = len(data.get('payable', []))
+        # 从生成的Excel文件中读取应收/应付数据数量
+        df_receivable = pd.read_excel(invoice_detail_file, sheet_name='应收数据')
+        df_payable = pd.read_excel(invoice_detail_file, sheet_name='应付数据')
+        receivable_count = len(df_receivable[df_receivable['单位名称'] != '合计'])
+        payable_count = len(df_payable[df_payable['单位名称'] != '合计'])
 
         _, unmatched = step3_generate_voucher(
             invoice_detail_file, app.config['DB_PATH'], target_month, year, 1,
@@ -138,6 +141,61 @@ def download(session_id, filename):
         flash('文件不存在', 'error')
         return redirect(url_for('index'))
     return send_file(file_path, as_attachment=True)
+
+
+@app.route('/cleanup', methods=['POST'])
+def cleanup():
+    """清理上传和处理结果文件"""
+    try:
+        import shutil
+
+        folders = [
+            app.config['UPLOAD_FOLDER'],
+            app.config['OUTPUT_FOLDER']
+        ]
+
+        cleaned_count = 0
+        for folder in folders:
+            if os.path.exists(folder):
+                for item in os.listdir(folder):
+                    item_path = os.path.join(folder, item)
+                    if os.path.isdir(item_path):
+                        shutil.rmtree(item_path)
+                        cleaned_count += 1
+                    elif os.path.isfile(item_path):
+                        os.remove(item_path)
+                        cleaned_count += 1
+
+        flash(f'已清理 {cleaned_count} 个文件/目录', 'success')
+    except Exception as e:
+        flash(f'清理失败: {str(e)}', 'error')
+
+    return redirect(url_for('index'))
+
+
+@app.route('/files')
+def list_files():
+    """列出历史文件"""
+    files = []
+
+    output_folder = app.config['OUTPUT_FOLDER']
+    if os.path.exists(output_folder):
+        for session_id in os.listdir(output_folder):
+            session_path = os.path.join(output_folder, session_id)
+            if os.path.isdir(session_path):
+                for filename in os.listdir(session_path):
+                    file_path = os.path.join(session_path, filename)
+                    stat = os.stat(file_path)
+                    files.append({
+                        'session_id': session_id,
+                        'filename': filename,
+                        'size': stat.st_size,
+                        'mtime': datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
+                        'path': file_path
+                    })
+
+    files.sort(key=lambda x: x['mtime'], reverse=True)
+    return render_template('files.html', files=files)
 
 
 # ============================================================================
