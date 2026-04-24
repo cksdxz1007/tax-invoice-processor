@@ -28,18 +28,19 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # ============================================================================
 # 颜色常量
 # ============================================================================
-YELLOW_COLORS = {'FFFF00', 'FFFFFF00', 'FF00FFFF00'}  # 黄色填充
+FILTER_COLORS = {'FFFF00', 'FFFFFF00', 'FF00FFFF00'}  # 黄色填充
+FILTER_COLORS.update({'92D050', 'FF92D050'})  # 绿色填充
 
 
-def is_yellow_fill(cell) -> bool:
-    """检查单元格是否为黄色填充"""
+def is_filter_color(cell) -> bool:
+    """检查单元格是否为需要过滤的颜色（黄色/绿色）"""
     try:
         if cell.fill and cell.fill.fgColor:
             color = cell.fill.fgColor.rgb
             if color:
-                # 转换为字符串处理
                 color = str(color).upper()
-                return 'FFFF00' in color or color in YELLOW_COLORS
+                # 检查是否包含黄色或绿色
+                return 'FFFF00' in color or color in FILTER_COLORS or '92D050' in color
     except:
         pass
     return False
@@ -172,14 +173,14 @@ def step1_split_invoice(invoice_file: str, month: int, output_file: str) -> bool
                     excel_row = data_start + idx + 1
                     excel_col = amount_col_idx + 1
                     cell = ws.cell(row=excel_row, column=excel_col)
-                    if is_yellow_fill(cell):
+                    if is_filter_color(cell):
                         yellow_count += 1
                     else:
                         original_rows.append(idx)
 
                 section_df = section_df.loc[original_rows]
                 if yellow_count > 0:
-                    print(f"  {section}: 过滤 {yellow_count} 行黄色填充数据")
+                    print(f"  {section}: 过滤 {yellow_count} 行颜色标记数据")
 
             # 添加汇总行
             summary_row = {
