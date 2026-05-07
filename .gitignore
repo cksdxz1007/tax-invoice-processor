@@ -68,6 +68,9 @@ Docs/
 # App files
 app.pid
 
+# Backup files
+backup/
+
 # Password file
 .htpasswd
 cookies.txt

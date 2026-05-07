@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>税务应收应付数据处理系统</title>
+    <title>税务数据处理系统</title>
     <style>
         * {
             margin: 0;
@@ -54,8 +54,57 @@
         .subtitle {
             color: #666;
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 20px;
             font-size: 14px;
+        }
+        .tab-container {
+            display: flex;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 30px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 15px 20px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            font-weight: 500;
+            color: #666;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.3s;
+        }
+        .tab-btn:hover {
+            color: #667eea;
+        }
+        .tab-btn.active {
+            color: #667eea;
+        }
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .placeholder-content {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+            font-size: 14px;
+        }
+        .placeholder-content .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
         }
         .form-group {
             margin-bottom: 25px;
@@ -158,8 +207,8 @@
         <a href="{{ url_for('logout') }}" class="logout-btn">退出登录</a>
     </div>
     <div class="container">
-        <h1>税务应收应付数据处理系统</h1>
-        <p class="subtitle">自动拆分发票数据、生成应收数据、导出凭证分录</p>
+        <h1>税务数据处理系统</h1>
+        <p class="subtitle">发票数据处理、生成应收/实收数据、导出凭证分录</p>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -169,50 +218,105 @@
             {% endif %}
         {% endwith %}
 
-        <form action="/upload" method="post" enctype="multipart/form-data">
-            <div class="form-group">
-                <label for="file">上传发票文件</label>
-                <input type="file" id="file" name="file" accept=".xlsx,.xls" required>
-            </div>
+        <div class="tab-container">
+            <button class="tab-btn active" onclick="switchTab('accounts')">应收应付</button>
+            <button class="tab-btn" onclick="switchTab('actual')">实收实付</button>
+        </div>
 
-            <div class="form-row">
+        <div id="accounts" class="tab-content active">
+            <form action="/upload" method="post" enctype="multipart/form-data">
                 <div class="form-group">
-                    <label for="month">处理月份</label>
-                    <select id="month" name="month" required>
-                        <option value="">请选择月份</option>
-                        <option value="1">1月</option>
-                        <option value="2">2月</option>
-                        <option value="3">3月</option>
-                        <option value="4">4月</option>
-                        <option value="5">5月</option>
-                        <option value="6">6月</option>
-                        <option value="7">7月</option>
-                        <option value="8">8月</option>
-                        <option value="9">9月</option>
-                        <option value="10">10月</option>
-                        <option value="11">11月</option>
-                        <option value="12">12月</option>
-                    </select>
+                    <label for="file">上传发票文件</label>
+                    <input type="file" id="file" name="file" accept=".xlsx,.xls" required>
                 </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="month">处理月份</label>
+                        <select id="month" name="month" required>
+                            <option value="">请选择月份</option>
+                            <option value="1">1月</option>
+                            <option value="2">2月</option>
+                            <option value="3">3月</option>
+                            <option value="4">4月</option>
+                            <option value="5">5月</option>
+                            <option value="6">6月</option>
+                            <option value="7">7月</option>
+                            <option value="8">8月</option>
+                            <option value="9">9月</option>
+                            <option value="10">10月</option>
+                            <option value="11">11月</option>
+                            <option value="12">12月</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="year">年份</label>
+                        <input type="number" id="year" name="year" value="2026" min="2000" max="2100" required>
+                    </div>
+                </div>
+
                 <div class="form-group">
-                    <label for="year">年份</label>
-                    <input type="number" id="year" name="year" value="2026" min="2000" max="2100" required>
+                    <button type="submit" class="btn">开始处理</button>
                 </div>
-            </div>
+            </form>
 
-            <div class="form-group">
-                <button type="submit" class="btn">开始处理</button>
+            <div class="info">
+                <h3>使用说明</h3>
+                <ul>
+                    <li>上传包含税务发票数据的 Excel 文件（需包含对应月份的工作表）</li>
+                    <li>选择要处理的月份和年份</li>
+                    <li>系统将自动拆分发票数据、生成应收数据、导出凭证分录</li>
+                    <li>处理完成后可下载生成的 Excel 文件</li>
+                </ul>
             </div>
-        </form>
+        </div>
 
-        <div class="info">
-            <h3>使用说明</h3>
-            <ul>
-                <li>上传包含税务发票数据的 Excel 文件（需包含对应月份的工作表）</li>
-                <li>选择要处理的月份和年份</li>
-                <li>系统将自动拆分发票数据、生成应收数据、导出凭证分录</li>
-                <li>处理完成后可下载生成的 Excel 文件</li>
-            </ul>
+        <div id="actual" class="tab-content">
+            <form action="/actual_upload" method="post" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="actual_file">上传发票文件</label>
+                    <input type="file" id="actual_file" name="file" accept=".xlsx,.xls" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="actual_month">处理月份</label>
+                        <select id="actual_month" name="month" required>
+                            <option value="">请选择月份</option>
+                            <option value="1">1月</option>
+                            <option value="2">2月</option>
+                            <option value="3">3月</option>
+                            <option value="4">4月</option>
+                            <option value="5">5月</option>
+                            <option value="6">6月</option>
+                            <option value="7">7月</option>
+                            <option value="8">8月</option>
+                            <option value="9">9月</option>
+                            <option value="10">10月</option>
+                            <option value="11">11月</option>
+                            <option value="12">12月</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="actual_year">年份</label>
+                        <input type="number" id="actual_year" name="year" value="2026" min="2000" max="2100" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn">开始处理</button>
+                </div>
+            </form>
+
+            <div class="info">
+                <h3>使用说明</h3>
+                <ul>
+                    <li>上传包含实收实付发票数据的 Excel 文件（需包含对应月份的工作表）</li>
+                    <li>选择要处理的月份和年份</li>
+                    <li>系统将自动处理发票数据、生成实收实付数据、导出凭证分录</li>
+                    <li>处理完成后可下载生成的 Excel 文件</li>
+                </ul>
+            </div>
         </div>
 
         <div style="margin-top: 30px; display: flex; gap: 20px; justify-content: center;">
@@ -231,5 +335,14 @@
             </form>
         </div>
     </div>
+
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.querySelector(`.tab-btn[onclick="switchTab('${tabId}')"]`).classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+    </script>
 </body>
 </html>

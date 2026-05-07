@@ -4,7 +4,7 @@
 税务应收应付数据处理系统 - Web服务
 
 仅负责处理上传文件和反馈结果的前端逻辑
-数据处理逻辑由 run_full_pipeline.py 提供
+数据处理逻辑由 run_accounts_pipeline.py 提供
 档案管理逻辑由 archives.py 提供
 """
 
@@ -21,10 +21,15 @@ import pandas as pd
 # 添加当前目录到路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from run_full_pipeline import (
+from run_accounts_pipeline import (
     step1_split_invoice,
     step2_generate_receivable,
     step3_generate_voucher
+)
+from run_actual_pipeline import (
+    step1_split_actual,
+    step3_generate_actual_voucher,
+    step3_generate_payment_voucher
 )
 from archives import ArchiveManager
 
@@ -190,6 +195,93 @@ def upload():
                 'name': f'{target_month}月未匹配客户.xlsx',
                 'path': unmatched_file,
                 'display_name': '未匹配客户'
+            })
+
+        os.remove(upload_path)
+        return render_template('download.html', results=results, month=target_month)
+
+    except Exception as e:
+        if os.path.exists(upload_path):
+            os.remove(upload_path)
+        flash(f'处理出错: {str(e)}', 'error')
+        return redirect(url_for('index'))
+
+
+@app.route('/actual_upload', methods=['POST'])
+@requires_auth
+def actual_upload():
+    """实收实付数据处理"""
+    file = request.files.get('file')
+    target_month = int(request.form.get('month', 1))
+    year = int(request.form.get('year', 2026))
+
+    if not file or file.filename == '':
+        flash('请选择文件', 'error')
+        return redirect(url_for('index'))
+
+    filename = f'{uuid.uuid4().hex}_{file.filename}'
+    upload_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(upload_path)
+
+    try:
+        session_id = datetime.now().strftime('%Y%m%d%H%M%S')
+        output_dir = os.path.join(app.config['OUTPUT_FOLDER'], session_id)
+        os.makedirs(output_dir, exist_ok=True)
+
+        # 步骤1: 拆分实收实付数据（银行流水 -> 转入/转出/其他支出汇总）
+        detail_file = os.path.join(output_dir, f'{target_month}月实收实付明细.xlsx')
+        step1_split_actual(upload_path, target_month, detail_file)
+
+        # 步骤2: 生成转入凭证（收回应收账款）
+        actual_voucher_file = os.path.join(output_dir, f'{target_month}月转入凭证分录.xlsx')
+        unmatched_actual_file = os.path.join(output_dir, f'{target_month}月未匹配客户.xlsx')
+        _, unmatched_actual = step3_generate_actual_voucher(
+            detail_file, app.config['DB_PATH'], target_month, year, 1,
+            actual_voucher_file, unmatched_actual_file
+        )
+
+        # 步骤3: 生成转出凭证（预付账款）
+        payment_voucher_file = os.path.join(output_dir, f'{target_month}月转出凭证分录.xlsx')
+        unmatched_payment_file = os.path.join(output_dir, f'{target_month}月未匹配供应商.xlsx')
+        _, unmatched_payment = step3_generate_payment_voucher(
+            detail_file, app.config['DB_PATH'], target_month, year, 2,
+            payment_voucher_file, unmatched_payment_file
+        )
+
+        # 读取转入/转出汇总数量
+        xl = pd.ExcelFile(detail_file)
+        in_count = len(pd.read_excel(detail_file, sheet_name='转入汇总'))
+        out_count = len(pd.read_excel(detail_file, sheet_name='转出汇总'))
+
+        results = {
+            'success': True,
+            'session_id': session_id,
+            'files': [
+                {'name': f'{target_month}月实收实付明细.xlsx', 'path': detail_file,
+                 'display_name': '实收实付明细 (转入/转出/其他支出)'},
+                {'name': f'{target_month}月转入凭证分录.xlsx', 'path': actual_voucher_file,
+                 'display_name': '转入凭证 (收回应收账款)'},
+                {'name': f'{target_month}月转出凭证分录.xlsx', 'path': payment_voucher_file,
+                 'display_name': '转出凭证 (预付账款)'},
+            ],
+            'in_count': in_count,
+            'out_count': out_count,
+            'unmatched_actual_count': len(unmatched_actual),
+            'unmatched_payment_count': len(unmatched_payment)
+        }
+
+        if unmatched_actual:
+            results['files'].append({
+                'name': f'{target_month}月未匹配客户.xlsx',
+                'path': unmatched_actual_file,
+                'display_name': '未匹配客户'
+            })
+
+        if unmatched_payment:
+            results['files'].append({
+                'name': f'{target_month}月未匹配供应商.xlsx',
+                'path': unmatched_payment_file,
+                'display_name': '未匹配供应商'
             })
 
         os.remove(upload_path)

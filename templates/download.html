@@ -181,10 +181,46 @@
         <h1>处理完成!</h1>
         <p class="subtitle">{{ month }}月税务数据已处理完成，请下载生成的文件</p>
 
-        {% if results.unmatched_count > 0 %}
+        {% if results.get('unmatched_count', 0) > 0 %}
         <div class="warning">
             <svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
             <span>有 {{ results.unmatched_count }} 个客户在客户档案中未找到匹配，请先维护客户档案</span>
+        </div>
+        {% endif %}
+        {% if results.get('unmatched_actual_count', 0) > 0 %}
+        <div class="warning">
+            <svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+            <span>有 {{ results.unmatched_actual_count }} 个客户在客户档案中未找到匹配（转入）</span>
+        </div>
+        {% endif %}
+        {% if results.get('unmatched_payment_count', 0) > 0 %}
+        <div class="warning">
+            <svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+            <span>有 {{ results.unmatched_payment_count }} 个供应商在供应商档案中未找到匹配（转出）</span>
+        </div>
+        {% endif %}
+
+        {% if results.get('receivable_count') or results.get('in_count') %}
+        <div class="stats">
+            {% if results.get('receivable_count') %}
+            <div class="stat-item">
+                <div class="stat-value">{{ results.receivable_count }}</div>
+                <div class="stat-label">应收客户数</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">{{ results.payable_count }}</div>
+                <div class="stat-label">应付供应商数</div>
+            </div>
+            {% elif results.get('in_count') %}
+            <div class="stat-item">
+                <div class="stat-value">{{ results.in_count }}</div>
+                <div class="stat-label">转入单位数</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">{{ results.out_count }}</div>
+                <div class="stat-label">转出单位数</div>
+            </div>
+            {% endif %}
         </div>
         {% endif %}
 

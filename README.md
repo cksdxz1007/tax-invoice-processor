@@ -19,7 +19,7 @@
 
 ```
 ├── app.py                    # Web服务入口
-├── run_full_pipeline.py       # 核心数据处理逻辑
+├── run_accounts_pipeline.py    # 核心数据处理逻辑（应收应付）
 ├── archives.py               # 档案管理模块
 ├── generate_receivable.py    # 应收应付数据生成
 ├── data.db                   # SQLite数据库
@@ -52,10 +52,10 @@ python app.py
 
 ```bash
 # 处理指定月份
-python run_full_pipeline.py 3
+python run_accounts_pipeline.py 3
 
 # 指定发票文件和输出目录
-python run_full_pipeline.py 3 --invoice-file data.xlsx --output-dir output
+python run_accounts_pipeline.py 3 --invoice-file data.xlsx --output-dir output
 
 # 仅生成应收/应付数据
 python generate_receivable.py Docs/3月发票明细.xlsx
