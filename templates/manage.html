@@ -290,11 +290,11 @@
 
         <div class="stats">
             <div class="stat-card">
-                <div class="stat-value" id="total-count">-</div>
+                <div class="stat-value" id="total-count">{{ customer_count }}</div>
                 <div class="stat-label">档案总数</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value" id="recent-count">-</div>
+                <div class="stat-value" id="recent-count">{{ customer_new_count }}</div>
                 <div class="stat-label">本月新增</div>
             </div>
         </div>
@@ -454,9 +454,13 @@
             if (tab === 'customers') {
                 document.querySelector('.tab:nth-child(1)').classList.add('active');
                 document.getElementById('customers-tab').style.display = 'block';
+                document.getElementById('total-count').textContent = '{{ customer_count }}';
+                document.getElementById('recent-count').textContent = '{{ customer_new_count }}';
             } else {
                 document.querySelector('.tab:nth-child(2)').classList.add('active');
                 document.getElementById('suppliers-tab').style.display = 'block';
+                document.getElementById('total-count').textContent = '{{ supplier_count }}';
+                document.getElementById('recent-count').textContent = '{{ supplier_new_count }}';
             }
         }
 

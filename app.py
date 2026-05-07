@@ -369,7 +369,14 @@ def list_files():
 def manage():
     customers = archives.get_customers()
     suppliers = archives.get_suppliers()
-    return render_template('manage.html', customers=customers, suppliers=suppliers)
+    customer_count = archives.get_customer_count()
+    supplier_count = archives.get_supplier_count()
+    customer_new_count = archives.get_customer_new_count()
+    supplier_new_count = archives.get_supplier_new_count()
+    return render_template('manage.html',
+                           customers=customers, suppliers=suppliers,
+                           customer_count=customer_count, supplier_count=supplier_count,
+                           customer_new_count=customer_new_count, supplier_new_count=supplier_new_count)
 
 
 @app.route('/api/customer/<code>')

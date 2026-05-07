@@ -36,6 +36,50 @@ class ArchiveManager:
         conn.close()
         return customers
 
+    def get_customer_count(self):
+        """获取客户档案总数"""
+        conn = self._get_connection()
+        cursor = conn.execute('SELECT COUNT(*) FROM customers')
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count
+
+    def get_supplier_count(self):
+        """获取供应商档案总数"""
+        conn = self._get_connection()
+        cursor = conn.execute('SELECT COUNT(*) FROM suppliers')
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count
+
+    def get_customer_new_count(self):
+        """获取本月新增客户数"""
+        from datetime import datetime
+        current_month = datetime.now().month
+        current_year = datetime.now().year
+        conn = self._get_connection()
+        cursor = conn.execute(
+            'SELECT COUNT(*) FROM customers WHERE strftime("%m", created_at) = ? AND strftime("%Y", created_at) = ?',
+            (f'{current_month:02d}', str(current_year))
+        )
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count
+
+    def get_supplier_new_count(self):
+        """获取本月新增供应商数"""
+        from datetime import datetime
+        current_month = datetime.now().month
+        current_year = datetime.now().year
+        conn = self._get_connection()
+        cursor = conn.execute(
+            'SELECT COUNT(*) FROM suppliers WHERE strftime("%m", created_at) = ? AND strftime("%Y", created_at) = ?',
+            (f'{current_month:02d}', str(current_year))
+        )
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count
+
     def get_customer(self, code):
         """获取单个客户档案"""
         conn = self._get_connection()
@@ -67,10 +111,12 @@ class ArchiveManager:
                 conn.close()
                 return True, f'客户 {name} 已更新'
             else:
+                from datetime import datetime
+                created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 conn.execute('''
-                    INSERT INTO customers (客户编号, 客户名称, 客户简称, 总公司全称)
-                    VALUES (?, ?, ?, ?)
-                ''', (code, name, short, parent))
+                    INSERT INTO customers (客户编号, 客户名称, 客户简称, 总公司全称, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (code, name, short, parent, created_at))
                 conn.commit()
                 conn.close()
                 return True, f'客户 {name} 已添加'
@@ -141,10 +187,12 @@ class ArchiveManager:
                     ''', (name, short, parent, code))
                     updated += 1
                 else:
+                    from datetime import datetime
+                    created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     conn.execute('''
-                        INSERT INTO customers (客户编号, 客户名称, 客户简称, 总公司全称)
-                        VALUES (?, ?, ?, ?)
-                    ''', (code, name, short, parent))
+                        INSERT INTO customers (客户编号, 客户名称, 客户简称, 总公司全称, created_at)
+                        VALUES (?, ?, ?, ?, ?)
+                    ''', (code, name, short, parent, created_at))
                     imported += 1
 
             conn.commit()
@@ -212,10 +260,12 @@ class ArchiveManager:
                 conn.close()
                 return True, f'供应商 {name} 已更新'
             else:
+                from datetime import datetime
+                created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 conn.execute('''
-                    INSERT INTO suppliers (供应商编号, 供应商名称, 供应商简称)
-                    VALUES (?, ?, ?)
-                ''', (code, name, short))
+                    INSERT INTO suppliers (供应商编号, 供应商名称, 供应商简称, created_at)
+                    VALUES (?, ?, ?, ?)
+                ''', (code, name, short, created_at))
                 conn.commit()
                 conn.close()
                 return True, f'供应商 {name} 已添加'
@@ -285,10 +335,12 @@ class ArchiveManager:
                     ''', (name, short, code))
                     updated += 1
                 else:
+                    from datetime import datetime
+                    created_at = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     conn.execute('''
-                        INSERT INTO suppliers (供应商编号, 供应商名称, 供应商简称)
-                        VALUES (?, ?, ?)
-                    ''', (code, name, short))
+                        INSERT INTO suppliers (供应商编号, 供应商名称, 供应商简称, created_at)
+                        VALUES (?, ?, ?, ?)
+                    ''', (code, name, short, created_at))
                     imported += 1
 
             conn.commit()
