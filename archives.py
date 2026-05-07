@@ -90,6 +90,9 @@ class ArchiveManager:
         df = pd.read_sql_query('SELECT * FROM customers ORDER BY 客户编号', conn)
         conn.close()
 
+        # 确保客户编码保存为字符串格式（保留前导0）
+        df['客户编号'] = df['客户编号'].astype(str)
+
         output = tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False)
         df.to_excel(output, index=False, sheet_name='客户档案')
         output.close()
@@ -232,6 +235,9 @@ class ArchiveManager:
         df = pd.read_sql_query('SELECT * FROM suppliers ORDER BY 供应商编号', conn)
         conn.close()
 
+        # 确保供应商编码保存为字符串格式（保留前导0）
+        df['供应商编号'] = df['供应商编号'].astype(str)
+
         output = tempfile.NamedTemporaryFile(suffix='.xlsx', delete=False)
         df.to_excel(output, index=False, sheet_name='供应商档案')
         output.close()
@@ -250,9 +256,9 @@ class ArchiveManager:
         """
         try:
             if file_path.endswith('.csv'):
-                df = pd.read_csv(file_path)
+                df = pd.read_csv(file_path, dtype={'供应商编号': str})
             else:
-                df = pd.read_excel(file_path)
+                df = pd.read_excel(file_path, dtype={'供应商编号': str})
 
             required_cols = ['供应商编号', '供应商名称']
             missing = [col for col in required_cols if col not in df.columns]
