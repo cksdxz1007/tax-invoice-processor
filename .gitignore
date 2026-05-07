@@ -60,7 +60,6 @@ Docs/
 
 # Database
 *.db
-!data.db
 
 # Claude
 .claude/
