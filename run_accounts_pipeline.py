@@ -299,11 +299,16 @@ def step2_generate_receivable(input_file: str, month: int, output_file: str) -> 
 # 第三步: 生成凭证分录
 # ============================================================================
 def get_customer_code(db_path: str, customer_name: str) -> tuple:
-    """根据客户名称获取客户编码"""
+    """根据客户名称获取客户编码（支持中英文括号差异）"""
+    # 规范化名称：统一括号类型后再匹配
+    normalized = customer_name.replace('（', '(').replace('）', ')')
     conn = sqlite3.connect(db_path)
     cursor = conn.execute(
-        'SELECT 客户编号 FROM customers WHERE 客户名称 = ? OR 客户简称 = ? OR 总公司全称 = ?',
-        (customer_name, customer_name, customer_name)
+        '''SELECT 客户编号 FROM customers
+           WHERE REPLACE(REPLACE(客户名称, '（', '('), '）', ')') = ?
+              OR REPLACE(REPLACE(客户简称, '（', '('), '）', ')') = ?
+              OR REPLACE(REPLACE(总公司全称, '（', '('), '）', ')') = ?''',
+        (normalized, normalized, normalized)
     )
     result = cursor.fetchone()
     conn.close()
