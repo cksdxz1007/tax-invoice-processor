@@ -438,7 +438,7 @@ def step3_generate_payment_voucher(detail_file: str, db_path: str, month: int, y
             out_amount = float(row['转出总额'])
             out_count = int(row['转出笔数'])
 
-            supplier_code, matched = get_customer_code(db_path, unit_name)
+            customer_code, matched = get_customer_code(db_path, unit_name)
 
             if not matched:
                 unmatched_customers.append({
@@ -456,8 +456,8 @@ def step3_generate_payment_voucher(detail_file: str, db_path: str, month: int, y
                 month=month, year=year, voucher_no=voucher_no, row_no=row_no,
                 summary=f'{month}月预付账款', subject_code='126',
                 debit=out_amount, credit=0,
-                customer_code='', customer_name='',
-                supplier_code=supplier_code, supplier_name=unit_name,
+                customer_code=customer_code, customer_name=unit_name,
+                supplier_code='', supplier_name='',
                 counter_subject='102', voucher_date=voucher_date,
                 invoice_count=out_count
             )
