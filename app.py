@@ -234,7 +234,7 @@ def actual_upload():
 
         # 步骤2: 生成转入凭证（收回应收账款）
         actual_voucher_file = os.path.join(output_dir, f'{target_month}月转入凭证分录.xlsx')
-        unmatched_actual_file = os.path.join(output_dir, f'{target_month}月未匹配客户.xlsx')
+        unmatched_actual_file = os.path.join(output_dir, f'{target_month}月未匹配客户-转入.xlsx')
         _, unmatched_actual = step3_generate_actual_voucher(
             detail_file, app.config['DB_PATH'], target_month, year, 1,
             actual_voucher_file, unmatched_actual_file
@@ -242,7 +242,7 @@ def actual_upload():
 
         # 步骤3: 生成转出凭证（预付账款）
         payment_voucher_file = os.path.join(output_dir, f'{target_month}月转出凭证分录.xlsx')
-        unmatched_payment_file = os.path.join(output_dir, f'{target_month}月未匹配供应商.xlsx')
+        unmatched_payment_file = os.path.join(output_dir, f'{target_month}月未匹配客户-转出.xlsx')
         _, unmatched_payment = step3_generate_payment_voucher(
             detail_file, app.config['DB_PATH'], target_month, year, 2,
             payment_voucher_file, unmatched_payment_file
@@ -272,16 +272,16 @@ def actual_upload():
 
         if unmatched_actual:
             results['files'].append({
-                'name': f'{target_month}月未匹配客户.xlsx',
+                'name': f'{target_month}月未匹配客户-转入.xlsx',
                 'path': unmatched_actual_file,
-                'display_name': '未匹配客户'
+                'display_name': '未匹配客户-转入'
             })
 
         if unmatched_payment:
             results['files'].append({
-                'name': f'{target_month}月未匹配供应商.xlsx',
+                'name': f'{target_month}月未匹配客户-转出.xlsx',
                 'path': unmatched_payment_file,
-                'display_name': '未匹配供应商'
+                'display_name': '未匹配客户-转出'
             })
 
         os.remove(upload_path)

@@ -409,10 +409,10 @@ def step3_generate_payment_voucher(detail_file: str, db_path: str, month: int, y
         year: 年份
         voucher_no: 凭证编号
         output_file: 输出文件路径
-        unmatched_file: 未匹配供应商导出路径
+        unmatched_file: 未匹配客户导出路径
 
     Returns:
-        (是否成功, 未匹配供应商列表)
+        (是否成功, 未匹配客户列表)
     """
     print("\n" + "=" * 70)
     print("第三步: 生成付款凭证分录（转出）")
@@ -424,7 +424,7 @@ def step3_generate_payment_voucher(detail_file: str, db_path: str, month: int, y
 
         # 读取转出汇总 sheet
         df = pd.read_excel(detail_file, sheet_name='转出汇总')
-        print(f"读取转出汇总: {len(df)} 个供应商")
+        print(f"读取转出汇总: {len(df)} 个单位")
 
         entries = []
         row_no = 1
