@@ -58,20 +58,6 @@ def get_customer_code(db_path: str, customer_name: str) -> tuple:
     return '', False
 
 
-def get_supplier_code(db_path: str, supplier_name: str) -> tuple:
-    """根据供应商名称获取供应商编码"""
-    conn = sqlite3.connect(db_path)
-    cursor = conn.execute(
-        'SELECT 供应商编号 FROM suppliers WHERE 供应商名称 = ? OR 供应商简称 = ?',
-        (supplier_name, supplier_name)
-    )
-    result = cursor.fetchone()
-    conn.close()
-    if result:
-        return str(result[0]), True
-    return '', False
-
-
 def create_entry(month, year, voucher_no, row_no, summary, subject_code, debit, credit,
                  customer_code, customer_name, counter_subject, voucher_date, invoice_count=1,
                  supplier_code='', supplier_name=''):
@@ -442,7 +428,7 @@ def step3_generate_payment_voucher(detail_file: str, db_path: str, month: int, y
 
         entries = []
         row_no = 1
-        unmatched_suppliers = []
+        unmatched_customers = []
         total_out_amount = 0.0
         total_invoice_count = 0
 
@@ -452,10 +438,10 @@ def step3_generate_payment_voucher(detail_file: str, db_path: str, month: int, y
             out_amount = float(row['转出总额'])
             out_count = int(row['转出笔数'])
 
-            supplier_code, matched = get_supplier_code(db_path, unit_name)
+            supplier_code, matched = get_customer_code(db_path, unit_name)
 
             if not matched:
-                unmatched_suppliers.append({
+                unmatched_customers.append({
                     '对方单位': unit_name,
                     '转出总额': out_amount,
                     '转出笔数': out_count
@@ -501,14 +487,14 @@ def step3_generate_payment_voucher(detail_file: str, db_path: str, month: int, y
         save_voucher_excel(entries, output_file)
         print(f"\n已保存到: {output_file}")
 
-        # 保存未匹配供应商
-        if unmatched_suppliers:
-            df_unmatched = pd.DataFrame(unmatched_suppliers)
+        # 保存未匹配客户
+        if unmatched_customers:
+            df_unmatched = pd.DataFrame(unmatched_customers)
             df_unmatched = df_unmatched.sort_values('转出总额', ascending=False)
-            df_unmatched.to_excel(unmatched_file, index=False, sheet_name='未匹配供应商')
-            print(f"未匹配供应商已导出到: {unmatched_file}")
+            df_unmatched.to_excel(unmatched_file, index=False, sheet_name='未匹配客户')
+            print(f"未匹配客户已导出到: {unmatched_file}")
 
-        return True, unmatched_suppliers
+        return True, unmatched_customers
 
     except Exception as e:
         print(f"错误: {e}")
