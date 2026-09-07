@@ -494,11 +494,12 @@ def import_suppliers():
 if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('DEBUG', '').lower() in ('1', 'true', 'yes', 'on')
 
     print("=" * 60)
     print("税务应收应付数据处理系统 Web 服务")
     print("=" * 60)
     print(f"请访问: http://127.0.0.1:{port}")
-    print("按 Ctrl+C 停止服务")
+    print(f"调试模式: {'开启' if debug else '关闭'}")
     print("=" * 60)
-    app.run(debug=True, host='0.0.0.0', port=port)
+    app.run(debug=debug, host=os.environ.get('HOST', '127.0.0.1'), port=port, use_reloader=debug)
